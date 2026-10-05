@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>My orders - Shopify store</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <div id="navbar"></div>
+  <div class="container page-box">
+    <h2 class="mb-4">My orders</h2>
+    <div id="ordersArea"></div>
+  </div>
+  <div id="footer"></div>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    renderNavbar('orders', false);
+    renderFooter();
+
+    var badge = { PLACED: 'primary', SHIPPED: 'info', DELIVERED: 'success', CANCELLED: 'danger' };
+
+    async function load() {
+      if (!Auth.isLoggedIn) { window.location.href = 'login.html?next=orders.html'; return; }
+      var area = document.getElementById('ordersArea');
+      try {
+        var orders = await api('/api/orders/my');
+        if (orders.length === 0) {
+          area.innerHTML = '<div class="alert alert-info">You have no orders yet. <a href="index.html#products">Start shopping</a></div>';
+          return;
+        }
+        area.innerHTML = orders.map(function (o) {
+          var items = o.items.map(function (i) {
+            return '<li class="list-group-item d-flex align-items-center">' +
+              '<img class="thumb mr-3" src="' + esc(i.imageUrl) + '" alt="">' +
+              '<div class="flex-grow-1">' + esc(i.productName) + '<br><small class="text-muted">' + i.quantity + ' x ' + money(i.unitPrice) + '</small></div>' +
+              '<div>' + money(i.unitPrice * i.quantity) + '</div></li>';
+          }).join('');
+          return '<div class="card mb-4"><div class="card-header d-flex justify-content-between">' +
+            '<span><strong>Order #' + o.id + '</strong> &middot; ' + formatDate(o.createdAt) + '</span>' +
+            '<span class="badge badge-' + (badge[o.status] || 'secondary') + ' align-self-center">' + esc(o.status) + '</span></div>' +
+            '<ul class="list-group list-group-flush">' + items + '</ul>' +
+            '<div class="card-footer d-flex justify-content-between"><small class="text-muted">Ship to: ' + esc(o.shippingAddress) + '</small>' +
+            '<strong>Total: ' + money(o.totalAmount) + '</strong></div></div>';
+        }).join('');
+      } catch (err) {
+        area.innerHTML = '<div class="alert alert-danger">' + esc(err.message) + '</div>';
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
